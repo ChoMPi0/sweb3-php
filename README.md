@@ -25,7 +25,3 @@ A php interface for interacting with the Ethereum blockchain and ecosystem.
 
 # License
 MIT
- 
-``` 
-0x4a890A7AFB7B1a4d49550FA81D5cdca09DC8606b
-```
