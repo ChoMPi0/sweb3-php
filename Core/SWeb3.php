@@ -15,7 +15,7 @@ use stdClass;
 use Exception;
 use SWeb3\Utils;
 use kornrunner\Ethereum\Transaction;
-use phpseclib\Math\BigInteger as BigNumber;
+use Brick\Math\BigInteger as BigNumber;
 
 class Ethereum_CRPC
 {

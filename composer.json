@@ -16,7 +16,7 @@
     "require": { 
         "kornrunner/ethereum-offline-raw-tx": "^0.6.0",
         "kornrunner/keccak": "~1", 
-        "phpseclib/phpseclib": "~2.0.30",
+        "brick/math": "^0.11.0",
         "simplito/elliptic-php": "^1.0"
     },
 

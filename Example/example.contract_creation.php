@@ -20,7 +20,6 @@ use stdClass;
 use SWeb3\SWeb3;
 use SWeb3\Utils;
 use SWeb3\SWeb3_Contract;
-use phpseclib\Math\BigInteger as BigNumber;
 
 
 //IMPORTANT

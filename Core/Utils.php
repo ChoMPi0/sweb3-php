@@ -22,10 +22,12 @@ use Decimal\Decimal;
 use stdClass;
 use InvalidArgumentException;  
 use kornrunner\Keccak;
-use phpseclib\Math\BigInteger as BigNumber;
+use Brick\Math\BigInteger AS BigNumber;
 
 class Utils
 {
+    const PRICE_DECIMAL_PRECISION = 9;
+
     /**
      * SHA3_NULL_HASH
      * 
@@ -79,7 +81,7 @@ class Utils
     public static function hexToBn($value)
     {
         $value = self::stripZero($value);
-        return (new BigNumber($value, 16));
+        return BigNumber::fromBase($value, 16);
     }
 
     /**
@@ -103,7 +105,7 @@ class Utils
      */
     public static function bnToDecimal(BigNumber $value)
     {
-        return new Decimal($value->toString(), 16);
+        return new Decimal($value, self::PRICE_DECIMAL_PRECISION);
     }
 
     /**
@@ -119,13 +121,13 @@ class Utils
         if (is_numeric($value) && !is_float($value) && !is_double($value)) {
             // turn to hex number
             $bn = self::toBn($value);
-            $hex = $bn->toHex(true);
+            $hex = bin2hex($bn->toBytes(true));
             $hex = preg_replace('/^0+(?!$)/', '', $hex);
         } elseif (is_string($value)) {
             $value = self::stripZero($value);
             $hex = implode('', unpack('H*', $value));
         } elseif ($value instanceof BigNumber) {
-            $hex = $value->toHex(true);
+            $hex = bin2hex($value->toBytes(true));
             $hex = preg_replace('/^0+(?!$)/', '', $hex);
         } else {
 			$type_error = gettype($value);
@@ -408,7 +410,7 @@ class Utils
             throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
         } 
 		
-		return new Decimal(self::toWei_Internal($number, self::UNITS[$unit])->toString(), PRICE_DECIMAL_PRECISION);
+		return new Decimal(self::toWei_Internal($number, self::UNITS[$unit]), self::PRICE_DECIMAL_PRECISION);
     }
 
 	/**
@@ -438,14 +440,13 @@ class Utils
      * @param string $unit_value
      * @return BigNumber
      */
-	private static function toWei_Internal($number, string $unit_value)
+	private static function toWei_Internal(mixed $number, string $unit_value)
     {
         if (!is_string($number) && !($number instanceof BigNumber)) {
             throw new InvalidArgumentException('toWei number must be string or bignumber.');
         }
         $bn = self::toBn($number);
-  
-        $bnt = new BigNumber($unit_value);
+        $bnt = BigNumber::of($unit_value);
 
         if (is_array($bn)) {
             // fraction number
@@ -455,27 +456,7 @@ class Utils
                 throw new InvalidArgumentException('toWei fraction part is out of limit.');
             }
             $whole = $whole->multiply($bnt);
-
-            // There is no pow function in phpseclib 2.0, only can see in dev-master
-            // Maybe implement own BigNumber in the future
-            // See 2.0 BigNumber: https://github.com/phpseclib/phpseclib/blob/2.0/phpseclib/Math/BigInteger.php
-            // See dev-master BigNumber: https://github.com/phpseclib/phpseclib/blob/master/phpseclib/Math/BigInteger.php#L700
-            // $base = (new BigNumber(10))->pow(new BigNumber($fractionLength));
-
-            // So we switch phpseclib special global param, change in the future
-            switch (MATH_BIGINTEGER_MODE) {
-                case $whole::MODE_GMP:
-                    static $two;
-                    $powerBase = gmp_pow(gmp_init(10), (int) $fractionLength);
-                    break;
-                case $whole::MODE_BCMATH:
-                    $powerBase = bcpow('10', (string) $fractionLength, 0);
-                    break;
-                default:
-                    $powerBase = pow(10, (int) $fractionLength);
-                    break;
-            }
-            $base = new BigNumber($powerBase);
+            $base = BigNumber::of(10)->power($fractionLength);
             $fraction = $fraction->multiply($bnt)->divide($base)[0];
 
             if ($negative1 !== false) {
@@ -484,7 +465,7 @@ class Utils
             return $whole->add($fraction);
         }
 
-        return $bn->multiply($bnt);
+        return $bn->multipliedBy($bnt);
     }
 
 
@@ -502,9 +483,9 @@ class Utils
     public static function toEther($number, $unit)
     {
         $wei = self::toWei($number, $unit);
-        $bnt = new BigNumber(self::UNITS['ether']); 
+        $bnt = BigNumber::of(self::UNITS['ether']); 
 
-        return $wei->divide($bnt);
+        return $wei->dividedBy($bnt);
     }
 
     /**
@@ -528,9 +509,9 @@ class Utils
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('fromWei doesn\'t support ' . $unit . ' unit.');
         }
-        $bnt = new BigNumber(self::UNITS[$unit]);
+        $bnt = BigNumber::of(self::UNITS[$unit]);
 
-        return $bn->divide($bnt);
+        return $bn->dividedBy($bnt);
     }
 
 
@@ -548,7 +529,7 @@ class Utils
     public static function toWeiString($number, $unit) : string
     {
 		$conv = self::toWei($number, $unit);
-		return $conv->toString();
+		return $conv->toBase(16);
 	}
 
 	/**
@@ -564,7 +545,7 @@ class Utils
     public static function toWeiStringFromDecimals($number, int $numberOfDecimals) : string
     {
 		$conv = self::toWeiFromDecimals($number, $numberOfDecimals);
-		return $conv->toString();
+		return $conv->toBase(16);
 	}
 
 
@@ -618,9 +599,9 @@ class Utils
 
         $exponent = str_pad('1', $numberOfDecimals + 1, '0', STR_PAD_RIGHT);
 
-        $bnt = new BigNumber($exponent);
+        $bnt = BigNumber::of($exponent);
 
-		$conversion = $bn->divide($bnt);
+		$conversion = $bn->dividedBy($bnt);
 
         return self::transformDivisionToString($conversion, self::UNITS['wei'], $exponent);
     }
@@ -632,22 +613,22 @@ class Utils
 	 * to a human readable unit.decimals (12.3920012000)
 	 * The unit string is 1000...000 having # decimal zero positions 
      * 
-     * @param (\phpseclib\Math\BigInteg, \phpseclib\Math\BigInteg) $divisionArray
+     * @param (\Brick\Math\BigInteger, \Brick\Math\BigInteger) $divisionArray
      * @param string $unitZerosOrigin string representing the origin unit's number of zeros 
 	 * @param string $unitZerosOrigin string representing the origin unit's number of zeros 
      * @return string
      */
 	private static function transformDivisionToString($divisionArray, $unitZerosOrigin, $unitZerosDestiny) : string
 	{
-		$left = $divisionArray[0]->toString();
-		$right = $divisionArray[1]->toString();
+		$left = $divisionArray[0]->toBase(16);
+		$right = $divisionArray[1]->toBase(16);
  
 		if ($right != "0")
 		{
-			$bnt_wei = new BigNumber($unitZerosOrigin);
-			$bnt_unit = new BigNumber($unitZerosDestiny);
+			$bnt_wei = BigNumber::of($unitZerosOrigin);
+			$bnt_unit = BigNumber::of($unitZerosDestiny);
  
-			$right_lead_zeros = strlen($bnt_unit->toString()) - strlen($bnt_wei->toString()) - strlen($right);  
+			$right_lead_zeros = strlen($bnt_unit->toBase(16)) - strlen($bnt_wei->toBase(16)) - strlen($right);  
 			
 			for ($i = 0; $i < $right_lead_zeros; $i++) $right = '0' . $right;
 			$right = rtrim($right, "0");
@@ -716,7 +697,6 @@ class Utils
     {
         if ($json instanceof stdClass) {
             $json = (array) $json;
-            $typeName = [];
 
             foreach ($json as $key => $param) {
                 if (is_array($param)) {
@@ -746,6 +726,7 @@ class Utils
      * Change number or number string to bignumber.
      * 
      * @param BigNumber|string|int $number
+     * 
      * @return array|BigNumber
      */
     public static function toBn($number)
@@ -754,7 +735,7 @@ class Utils
             $bn = $number;
         } 
 		elseif (is_int($number)) {
-            $bn = new BigNumber($number);
+            $bn = BigNumber::of($number);
         } 
 		elseif (is_numeric($number)) {
             $number = (string) $number;
@@ -762,7 +743,7 @@ class Utils
             if (self::isNegative($number)) {
                 $count = 1;
                 $number = str_replace('-', '', $number, $count);
-                $negative1 = new BigNumber(-1);
+                $negative1 = BigNumber::of(-1);
             }
             if (strpos($number, '.') > 0) {
                 $comps = explode('.', $number);
@@ -774,16 +755,16 @@ class Utils
                 $fraction = $comps[1];
 
                 return [
-                    new BigNumber($whole),
-                    new BigNumber($fraction),
+                    BigNumber::of($whole),
+                    BigNumber::of($fraction),
                     strlen($comps[1]),
                     isset($negative1) ? $negative1 : false
                 ];
             } else {
-                $bn = new BigNumber($number);
+                $bn = BigNumber::of($number);
             }
             if (isset($negative1)) {
-                $bn = $bn->multiply($negative1);
+                $bn = $bn->multipliedBy($negative1);
             }
         } 
 		elseif (is_string($number)) {
@@ -792,18 +773,18 @@ class Utils
             if (self::isNegative($number)) {
                 $count = 1;
                 $number = str_replace('-', '', $number, $count);
-                $negative1 = new BigNumber(-1);
+                $negative1 = BigNumber::of(-1);
             }
             if (self::isZeroPrefixed($number) || preg_match('/^[0-9a-f]+$/i', $number) === 1) {
                 $number = self::stripZero($number);
-                $bn = new BigNumber($number, 16);
+                $bn = BigNumber::fromBase($number, 16);
             } elseif (empty($number)) {
-                $bn = new BigNumber(0);
+                $bn = BigNumber::of(0);
             } else {
                 throw new InvalidArgumentException('toBn number must be valid hex string.');
             }
             if (isset($negative1)) {
-                $bn = $bn->multiply($negative1);
+                $bn = $bn->multipliedBy($negative1);
             }
         } 
 		else {

@@ -31,7 +31,7 @@ abstract class VariableType
 use stdClass; 
 use Exception;
 use kornrunner\Keccak;
-use phpseclib\Math\BigInteger;
+use Brick\Math\BigInteger;
 
 class ABI
 {
@@ -437,10 +437,10 @@ class ABI
     {  
 		if (is_string($data) && ctype_digit($data)) { 
 			$bn = Utils::toBn($data);
-			$hash = self::AddZeros($bn->toHex(true), true); 
+			$hash = self::AddZeros(bin2hex($bn->toBytes(true)), true); 
 		} 
 		else if ($data instanceof BigInteger) { 
-			$hash = self::AddZeros($data->toHex(true), true); 
+			$hash = self::AddZeros(bin2hex($data->toBytes(true)), true); 
 		} 
 		else if (is_int($data) || is_long($data)) {
 			$hash = self::AddZeros(dechex($data), true); 
@@ -456,13 +456,13 @@ class ABI
     {   
 		if (is_string($data) && ctype_digit($data)) { 
 			$bn = Utils::toBn($data);
-			$hash = self::AddNegativeF($bn->toHex(true), true); 
+			$hash = self::AddNegativeF(bin2hex($bn->toBytes(true)), true); 
 		} 
 		else if ($data instanceof BigInteger) { 
-			if($data->toString()[0] == '-')
-				$hash = self::AddNegativeF($data->toHex(true), true); 
+			if($data->toBase(16)[0] == '-')
+				$hash = self::AddNegativeF(bin2hex($data->toBytes(true)), true); 
 			else
-				$hash = self::AddZeros($data->toHex(true), true); 
+				$hash = self::AddZeros(bin2hex($data->toBytes(true)), true); 
 		} 
 		else  if (is_int($data) || is_long($data)) {
 			$hash = self::AddZerosOrF(dechex($data), true); 
@@ -826,7 +826,7 @@ class ABI
         $partial = substr($encoded, $start, 64);   
         $partial = self::RemoveZeros($partial, true);  
     
-		$partial_big = new BigInteger($partial, 16);
+		$partial_big = BigInteger::fromBase($partial, 16);
 
 		return $partial_big;
     }
@@ -835,7 +835,7 @@ class ABI
 	private static function DecodeInput_Int($encoded, $start)
     {
         $partial = substr($encoded, $start, 64);     
-		$partial_big = new BigInteger($partial, -16);
+		$partial_big = BigInteger::fromBase($partial, -16);
 
         return $partial_big;
     }
