@@ -93,6 +93,12 @@ class Utils
      */
     public static function hexToInt($value)
     {
+        if (!is_string($value)) {
+            throw new InvalidArgumentException('The value to hexToInt function must be string.');
+        }
+        if (!self::isHex($value)) {
+            throw new InvalidArgumentException('The value to hexToInt function must be a valid hex string.');
+        }
         return hexdec($value);
     }
 
