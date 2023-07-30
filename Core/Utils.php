@@ -457,7 +457,7 @@ class Utils
             }
             $whole = $whole->multipliedBy($bnt);
             $base = BigNumber::of(10)->power($fractionLength);
-            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base)[0];
+            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base);
 
             if ($negative1 !== false) {
                 return $whole->plus($fraction)->multipliedBy($negative1);
