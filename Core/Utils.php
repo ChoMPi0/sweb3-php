@@ -455,14 +455,14 @@ class Utils
             if ($fractionLength > strlen($unit_value)) {
                 throw new InvalidArgumentException('toWei fraction part is out of limit.');
             }
-            $whole = $whole->multiply($bnt);
+            $whole = $whole->multipliedBy($bnt);
             $base = BigNumber::of(10)->power($fractionLength);
-            $fraction = $fraction->multiply($bnt)->divide($base)[0];
+            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base)[0];
 
             if ($negative1 !== false) {
-                return $whole->add($fraction)->multiply($negative1);
+                return $whole->plus($fraction)->multipliedBy($negative1);
             }
-            return $whole->add($fraction);
+            return $whole->plus($fraction);
         }
 
         return $bn->multipliedBy($bnt);
