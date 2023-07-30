@@ -529,7 +529,7 @@ class Utils
     public static function toWeiString($number, $unit) : string
     {
 		$conv = self::toWei($number, $unit);
-		return $conv->toBase(16);
+		return (string)$conv;
 	}
 
 	/**
@@ -545,7 +545,7 @@ class Utils
     public static function toWeiStringFromDecimals($number, int $numberOfDecimals) : string
     {
 		$conv = self::toWeiFromDecimals($number, $numberOfDecimals);
-		return $conv->toBase(16);
+		return (string)$conv;
 	}
 
 
@@ -620,15 +620,15 @@ class Utils
      */
 	private static function transformDivisionToString($divisionArray, $unitZerosOrigin, $unitZerosDestiny) : string
 	{
-		$left = $divisionArray[0]->toBase(16);
-		$right = $divisionArray[1]->toBase(16);
+		$left = (string)$divisionArray[0];
+		$right = (string)$divisionArray[1];
  
 		if ($right != "0")
 		{
 			$bnt_wei = BigNumber::of($unitZerosOrigin);
 			$bnt_unit = BigNumber::of($unitZerosDestiny);
  
-			$right_lead_zeros = strlen($bnt_unit->toBase(16)) - strlen($bnt_wei->toBase(16)) - strlen($right);  
+			$right_lead_zeros = strlen($bnt_unit) - strlen($bnt_wei) - strlen($right);  
 			
 			for ($i = 0; $i < $right_lead_zeros; $i++) $right = '0' . $right;
 			$right = rtrim($right, "0");
