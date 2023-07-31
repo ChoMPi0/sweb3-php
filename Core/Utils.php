@@ -23,6 +23,7 @@ use stdClass;
 use InvalidArgumentException;  
 use kornrunner\Keccak;
 use Brick\Math\BigInteger AS BigNumber;
+use Brick\Math\RoundingMode;
 
 class Utils
 {
@@ -247,8 +248,6 @@ class Utils
         return $params;
     }
 
-
-
     /**
      * isNegative
      * 
@@ -463,7 +462,7 @@ class Utils
             }
             $whole = $whole->multipliedBy($bnt);
             $base = BigNumber::of(10)->power($fractionLength);
-            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base);
+            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base, RoundingMode::UP);
 
             if ($negative1 !== false) {
                 return $whole->plus($fraction)->multipliedBy($negative1);
@@ -473,7 +472,6 @@ class Utils
 
         return $bn->multipliedBy($bnt);
     }
-
 
     /**
      * toEther
@@ -490,8 +488,8 @@ class Utils
     {
         $wei = self::toWei($number, $unit);
         $bnt = BigNumber::of(self::UNITS['ether']); 
-
-        return $wei->dividedBy($bnt);
+        
+        return $wei->dividedBy($bnt, RoundingMode::UP);
     }
 
     /**
@@ -517,12 +515,10 @@ class Utils
         }
         $bnt = BigNumber::of(self::UNITS[$unit]);
 
-        return $bn->dividedBy($bnt);
+        return $bn->dividedBy($bnt, RoundingMode::UP);
     }
-
-
 	 
-	 /**
+    /**
      * toWeiString
      * Change number from unit to wei. and show a string representation
      * For example:
@@ -554,7 +550,6 @@ class Utils
 		return (string)$conv;
 	}
 
-
 	/**
      * toEtherString
      * Change number from unit to ether. and show a string representation
@@ -571,7 +566,6 @@ class Utils
 		return self::transformDivisionToString($conversion, self::UNITS[$unit], self::UNITS['ether']);
     }
 
-
 	/**
      * fromWeiToString
      * Change number from wei to unit. and show a string representation
@@ -587,7 +581,6 @@ class Utils
 		$conversion = self::fromWei($number, $unit);   
 		return self::transformDivisionToString($conversion, self::UNITS['wei'], self::UNITS[$unit]);
 	}
- 
 
 	/**
      * fromWeiToDecimalsString
@@ -602,16 +595,12 @@ class Utils
     public static function fromWeiToDecimalsString($number, int $numberOfDecimals) : string
     {
         $bn = self::toBn($number);
-
         $exponent = str_pad('1', $numberOfDecimals + 1, '0', STR_PAD_RIGHT);
-
         $bnt = BigNumber::of($exponent);
-
-		$conversion = $bn->dividedBy($bnt);
+		$conversion = $bn->dividedBy($bnt, RoundingMode::UP);
 
         return self::transformDivisionToString($conversion, self::UNITS['wei'], $exponent);
     }
-
 
 	/**
      * transformDivisionToString
