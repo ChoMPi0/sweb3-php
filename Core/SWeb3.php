@@ -15,7 +15,7 @@ use stdClass;
 use Exception;
 use SWeb3\Utils;
 use kornrunner\Ethereum\Transaction;
-use Brick\Math\BigInteger as BigNumber;
+use Brick\Math\BigInteger;
 
 class Ethereum_CRPC
 {
@@ -217,7 +217,7 @@ class SWeb3
         return $this->utils->hexToBn($transactionCount->result);
     }
  
-    function getGasPrice(bool $force_refresh = false) : BigNumber
+    function getGasPrice(bool $force_refresh = false): BigInteger
     {
         if ($this->gasPrice == null || $force_refresh) {
             $gasPriceResult = $this->call('eth_gasPrice'); 

@@ -22,8 +22,9 @@ use Decimal\Decimal;
 use stdClass;
 use InvalidArgumentException;  
 use kornrunner\Keccak;
-use Brick\Math\BigInteger AS BigNumber;
-use Brick\Math\RoundingMode;
+use Brick\Math\BigNumber;
+use Brick\Math\BigDecimal;
+use Brick\Math\BigInteger;
 
 class Utils
 {
@@ -74,25 +75,28 @@ class Utils
 
     /**
      * hexToBn
-     * decoding hex number into decimal 
+     * decoding hex number into BigInteger. 
      * 
-     * @param string  $value 
-     * @return  BigNumber
+     * @param string $value 
+     * 
+     * @return BigInteger
      */
-    public static function hexToBn($value)
+    public static function hexToBn(string $value)
     {
         $value = self::stripZero($value);
-        return BigNumber::fromBase($value, 16);
+
+        return BigInteger::fromBase($value, 16);
     }
 
     /**
      * hexToInt
      * decoding hex number into integer 
      * 
-     * @param string  $value 
+     * @param string $value 
+     * 
      * @return int
      */
-    public static function hexToInt($value)
+    public static function hexToInt(string $value)
     {
         if (!is_string($value)) {
             throw new InvalidArgumentException('The value to hexToInt function must be string.');
@@ -108,11 +112,12 @@ class Utils
      * Converts BigNumber to Decimal.
      * 
      * @param BigNumber $value 
+     * 
      * @return Decimal
      */
     public static function bnToDecimal(BigNumber $value)
     {
-        return new Decimal($value, self::PRICE_DECIMAL_PRECISION);
+        return new Decimal((string)$value, self::PRICE_DECIMAL_PRECISION);
     }
 
     /**
@@ -123,19 +128,16 @@ class Utils
      * @param bool $isPrefix
      * @return string
      */
-    public static function toHex($value, $isPrefix=false)
+    public static function toHex(mixed $value, bool $isPrefix = false)
     {
-        if (is_numeric($value) && !is_float($value) && !is_double($value)) {
+        if ($value instanceof BigNumber || (is_numeric($value) && !is_float($value) && !is_double($value))) {
             // turn to hex number
-            $bn = self::toBn($value);
+            $bn = BigInteger::of($value);
             $hex = bin2hex($bn->toBytes(true));
             $hex = preg_replace('/^0+(?!$)/', '', $hex);
         } elseif (is_string($value)) {
             $value = self::stripZero($value);
             $hex = implode('', unpack('H*', $value));
-        } elseif ($value instanceof BigNumber) {
-            $hex = bin2hex($value->toBytes(true));
-            $hex = preg_replace('/^0+(?!$)/', '', $hex);
         } else {
 			$type_error = gettype($value);
             throw new InvalidArgumentException("The value to Utils::toHex() function is not supported: value=$value type=$type_error. Only int, hex string, BigNumber or int string representation are allowed.");
@@ -150,14 +152,12 @@ class Utils
     /**
      * hexToBin
      * 
-     * @param string
+     * @param string $value
+     * 
      * @return string
      */
-    public static function hexToBin($value)
+    public static function hexToBin(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to hexToBin function must be string.');
-        }
         if (self::isZeroPrefixed($value)) {
             $count = 1;
             $value = str_replace('0x', '', $value, $count);
@@ -168,14 +168,12 @@ class Utils
     /**
      * isZeroPrefixed
      * 
-     * @param string
+     * @param string $value
+     * 
      * @return bool
      */
-    public static function isZeroPrefixed($value)
+    public static function isZeroPrefixed(string $value)
     {
-        if (!is_string($value)) {
-            //throw new InvalidArgumentException('The value to isZeroPrefixed function must be string.');
-        }
         return (strpos($value, '0x') === 0);
     }
 
@@ -183,9 +181,10 @@ class Utils
      * stripZero
      * 
      * @param string $value
+     * 
      * @return string
      */
-    public static function stripZero($value)
+    public static function stripZero(string $value)
     {
         if (self::isZeroPrefixed($value)) {
             $count = 1;
@@ -197,10 +196,11 @@ class Utils
     /**
      * addZeroPrefix
      * 
-     * @param string
+     * @param string $value
+     * 
      * @return string
      */
-    public static function addZeroPrefix($value)
+    public static function addZeroPrefix(string $value)
     {
         $value = '' . $value;
 
@@ -215,7 +215,8 @@ class Utils
     /**
      * forceAllNumbersHex
      * 
-     * @param object[]
+     * @param object[] $params
+     * 
      * @return object[]
      */
     public static function forceAllNumbersHex($params)
@@ -251,14 +252,12 @@ class Utils
     /**
      * isNegative
      * 
-     * @param string
+     * @param string $value
+     * 
      * @return bool
      */
-    public static function isNegative($value)
+    public static function isNegative(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to isNegative function must be string.');
-        }
         return (strpos($value, '-') === 0);
     }
 
@@ -266,13 +265,11 @@ class Utils
      * isAddress
      * 
      * @param string $value
+     * 
      * @return bool
      */
-    public static function isAddress($value)
+    public static function isAddress(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to isAddress function must be string.');
-        }
         if (preg_match('/^(0x|0X)?[a-f0-9A-F]{40}$/', $value) !== 1) {
             return false;
         } elseif (preg_match('/^(0x|0X)?[a-f0-9]{40}$/', $value) === 1 || preg_match('/^(0x|0X)?[A-F0-9]{40}$/', $value) === 1) {
@@ -285,13 +282,11 @@ class Utils
      * isAddressChecksum
      *
      * @param string $value
+     * 
      * @return bool
      */
-    public static function isAddressChecksum($value)
+    public static function isAddressChecksum(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to isAddressChecksum function must be string.');
-        }
         $value = self::stripZero($value);
         $hash = self::stripZero(self::sha3(mb_strtolower($value)));
 
@@ -310,13 +305,11 @@ class Utils
      * toChecksumAddress
      *
      * @param string $value
+     * 
      * @return string
      */
-    public static function toChecksumAddress($value)
+    public static function toChecksumAddress(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to toChecksumAddress function must be string.');
-        }
         $value = self::stripZero(strtolower($value));
         $hash = self::stripZero(self::sha3($value));
         $ret = '0x';
@@ -335,9 +328,10 @@ class Utils
      * isHex
      * 
      * @param string $value
+     * 
      * @return bool
      */
-    public static function isHex($value)
+    public static function isHex(string $value)
     {
         return (is_string($value) && preg_match('/^(0x)?[a-f0-9]*$/', $value) === 1);
     }
@@ -347,13 +341,11 @@ class Utils
      * keccak256
      * 
      * @param string $value
+     * 
      * @return string
      */
-    public static function sha3($value)
+    public static function sha3(string $value)
     {
-        if (!is_string($value)) {
-            throw new InvalidArgumentException('The value to sha3 function must be string.');
-        }
         if (strpos($value, '0x') === 0) {
             $value = self::hexToBin($value);
         }
@@ -369,13 +361,122 @@ class Utils
      * toString
      * 
      * @param mixed $value
+     * 
      * @return string
      */
     public static function toString($value)
     {
-        $value = (string) $value;
+        return (string)$value;
+    }
 
-        return $value;
+    /**
+     * toBn
+     * Change number or number string to bignumber.
+     * 
+     * @param BigNumber|string|int $number
+     * 
+     * @return array|BigInteger
+     */
+    public static function toBn($number)
+    {
+        if ($number instanceof BigNumber){
+            $bn = BigInteger::of($number);
+        } 
+		elseif (is_int($number)) {
+            $bn = BigInteger::of($number);
+        } 
+		elseif (is_numeric($number)) {
+            $number = (string)$number;
+
+            if (self::isNegative($number)) {
+                $count = 1;
+                $number = str_replace('-', '', $number, $count);
+                $negative1 = BigInteger::of(-1);
+            }
+            if (strpos($number, '.') > 0) {
+                $comps = explode('.', $number);
+
+                if (count($comps) > 2) {
+                    throw new InvalidArgumentException('toBn number must be a valid number.');
+                }
+                $whole = $comps[0];
+                $fraction = $comps[1];
+
+                return [
+                    BigInteger::of($whole),
+                    BigInteger::of($fraction),
+                    strlen($comps[1]),
+                    isset($negative1) ? $negative1 : false
+                ];
+            } else {
+                $bn = BigInteger::of($number);
+            }
+            if (isset($negative1)) {
+                $bn = $bn->multipliedBy($negative1);
+            }
+        } 
+		elseif (is_string($number)) {
+            $number = mb_strtolower($number);
+
+            if (self::isNegative($number)) {
+                $count = 1;
+                $number = str_replace('-', '', $number, $count);
+                $negative1 = BigInteger::of(-1);
+            }
+            if (self::isZeroPrefixed($number) || preg_match('/^[0-9a-f]+$/i', $number) === 1) {
+                $number = self::stripZero($number);
+                $bn = BigInteger::fromBase($number, 16);
+            } elseif (empty($number)) {
+                $bn = BigInteger::of(0);
+            } else {
+                throw new InvalidArgumentException('toBn number must be valid hex string.');
+            }
+            if (isset($negative1)) {
+                $bn = $bn->multipliedBy($negative1);
+            }
+        } 
+		else {
+            throw new InvalidArgumentException('toBn number must be BigNumber, string or int.');
+        }
+        return $bn;
+    }
+
+    /**
+     * toWei_Internal
+     * Internal private fucntion to convert a number in "unti" to string. 
+	 * The unit string is 1000...000 having # decimal zero positions 
+     * 
+     * @param BigNumber|string $number
+     * @param string $unit_value
+     * 
+     * @return BigInteger
+     */
+	private static function toWei_Internal(mixed $number, string $unit_value)
+    {
+        if (!is_string($number) && !($number instanceof BigNumber)) {
+            throw new InvalidArgumentException('toWei number must be string or BigNumber.');
+        }
+        $bn = self::toBn($number);
+        $bnt = BigInteger::of($unit_value);
+
+        if (is_array($bn)) {
+            // fraction number
+            list($whole, $fraction, $fractionLength, $negative1) = $bn;
+
+            if ($fractionLength > strlen($unit_value)) {
+                throw new InvalidArgumentException('toWei fraction part is out of limit.');
+            }
+            $whole = $whole->multipliedBy($bnt);
+            $base = BigInteger::ten()->power($fractionLength);
+            $fraction = $fraction->multipliedBy($bnt)->exactlyDividedBy($base);
+
+            if ($negative1 !== false) {
+                return $whole->plus($fraction)->multipliedBy($negative1);
+            }
+            return $whole->plus($fraction);
+        }
+
+        return $bn->multipliedBy($bnt);
     }
 
     /**
@@ -387,9 +488,10 @@ class Utils
      * 
      * @param BigNumber|string $number
      * @param string $unit
-     * @return BigNumber
+     * 
+     * @return BigInteger
      */
-    public static function toWei($number, string $unit)
+    public static function toWei(mixed $number, string $unit)
     { 
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
@@ -407,15 +509,17 @@ class Utils
      * 
      * @param BigNumber|string $number
      * @param string $unit
-     * @return BigNumber
+     * @param int $decimalPrecision
+     * 
+     * @return Decimal
      */
-    public static function toWeiDecimal($number, string $unit)
+    public static function toWeiDecimal($number, string $unit, int $decimalPrecision = 9)
     { 
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
         } 
 		
-		return new Decimal(self::toWei_Internal($number, self::UNITS[$unit]), self::PRICE_DECIMAL_PRECISION);
+		return new Decimal(self::toWei_Internal($number, self::UNITS[$unit]), $decimalPrecision);
     }
 
 	/**
@@ -427,50 +531,13 @@ class Utils
      * 
      * @param BigNumber|string $number
      * @param string $unit
-     * @return BigNumber
+     * 
+     * @return BigInteger
      */
     public static function toWeiFromDecimals($number, int $numberOfDecimals)
     {  
 		$exponent = str_pad('1', $numberOfDecimals + 1, '0', STR_PAD_RIGHT);
 		return self::toWei_Internal($number, $exponent);
-    }
-
-
-	 /**
-     * toWei_Internal
-     * Internal private fucntion to convert a number in "unti" to string. 
-	 * The unit string is 1000...000 having # decimal zero positions 
-     * 
-     * @param BigNumber|string $number
-     * @param string $unit_value
-     * @return BigNumber
-     */
-	private static function toWei_Internal(mixed $number, string $unit_value)
-    {
-        if (!is_string($number) && !($number instanceof BigNumber)) {
-            throw new InvalidArgumentException('toWei number must be string or bignumber.');
-        }
-        $bn = self::toBn($number);
-        $bnt = BigNumber::of($unit_value);
-
-        if (is_array($bn)) {
-            // fraction number
-            list($whole, $fraction, $fractionLength, $negative1) = $bn;
-
-            if ($fractionLength > strlen($unit_value)) {
-                throw new InvalidArgumentException('toWei fraction part is out of limit.');
-            }
-            $whole = $whole->multipliedBy($bnt);
-            $base = BigNumber::of(10)->power($fractionLength);
-            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base, RoundingMode::UP);
-
-            if ($negative1 !== false) {
-                return $whole->plus($fraction)->multipliedBy($negative1);
-            }
-            return $whole->plus($fraction);
-        }
-
-        return $bn->multipliedBy($bnt);
     }
 
     /**
@@ -482,14 +549,15 @@ class Utils
      * 
      * @param BigNumber|string|int $number
      * @param string $unit
-     * @return array
+     * 
+     * @return BigDecimal
      */
     public static function toEther($number, $unit)
     {
-        $wei = self::toWei($number, $unit);
-        $bnt = BigNumber::of(self::UNITS['ether']); 
-        
-        return $wei->dividedBy($bnt, RoundingMode::UP);
+        $wei = BigDecimal::of(self::toWei($number, $unit));
+        $bnt = BigDecimal::of(self::UNITS['ether']); 
+
+        return $wei->dividedBy($bnt, 18);
     }
 
     /**
@@ -501,11 +569,12 @@ class Utils
      * 
      * @param BigNumber|string|int $number
      * @param string $unit
-     * @return BigNumber
+     * 
+     * @return BigDecimal
      */
     public static function fromWei($number, $unit)
     {
-        $bn = self::toBn($number);
+        $bn = BigDecimal::of(self::toBn($number));
 
         if (!is_string($unit)) {
             throw new InvalidArgumentException('fromWei unit must be string.');
@@ -513,9 +582,9 @@ class Utils
         if (!isset(self::UNITS[$unit])) {
             throw new InvalidArgumentException('fromWei doesn\'t support ' . $unit . ' unit.');
         }
-        $bnt = BigNumber::of(self::UNITS[$unit]);
+        $bnt = BigInteger::of(self::UNITS[$unit]);
 
-        return $bn->dividedBy($bnt, RoundingMode::UP);
+        return $bn->dividedBy($bnt, self::getDivisionScale((string)$number, $unit));
     }
 	 
     /**
@@ -526,6 +595,7 @@ class Utils
      * 
      * @param BigNumber|string $number
      * @param string $unit
+     * 
      * @return string
      */
     public static function toWeiString($number, $unit) : string
@@ -542,6 +612,7 @@ class Utils
      * 
      * @param BigNumber|string $number
      * @param int $numberOfDecimals
+     * 
      * @return string
      */
     public static function toWeiStringFromDecimals($number, int $numberOfDecimals) : string
@@ -558,11 +629,12 @@ class Utils
      * 
      * @param BigNumber|string|int $number
      * @param string $unit
+     * 
      * @return string
      */
     public static function toEtherString($number, $unit) : string
     {
-        $conversion = self::toEther($number, $unit);   
+        $conversion = self::toEther($number, $unit);
 		return self::transformDivisionToString($conversion, self::UNITS[$unit], self::UNITS['ether']);
     }
 
@@ -574,7 +646,8 @@ class Utils
      * 
      * @param BigNumber|string|int $number
      * @param string $unit
-     * @return BigNumber
+     * 
+     * @return string
      */
 	public static function fromWeiToString($number, $unit) : string
     {
@@ -590,14 +663,15 @@ class Utils
      * 
      * @param BigNumber|string|int $number
      * @param int $numberOfDecimals
+     * 
      * @return string
      */
     public static function fromWeiToDecimalsString($number, int $numberOfDecimals) : string
     {
         $bn = self::toBn($number);
         $exponent = str_pad('1', $numberOfDecimals + 1, '0', STR_PAD_RIGHT);
-        $bnt = BigNumber::of($exponent);
-		$conversion = $bn->dividedBy($bnt, RoundingMode::UP);
+        $bnt = BigInteger::of($exponent);
+		$conversion = $bn->dividedBy($bnt);
 
         return self::transformDivisionToString($conversion, self::UNITS['wei'], $exponent);
     }
@@ -608,20 +682,22 @@ class Utils
 	 * to a human readable unit.decimals (12.3920012000)
 	 * The unit string is 1000...000 having # decimal zero positions 
      * 
-     * @param (\Brick\Math\BigInteger, \Brick\Math\BigInteger) $divisionArray
+     * @param BigNumber $amount
      * @param string $unitZerosOrigin string representing the origin unit's number of zeros 
 	 * @param string $unitZerosOrigin string representing the origin unit's number of zeros 
+     * 
      * @return string
      */
-	private static function transformDivisionToString($divisionArray, $unitZerosOrigin, $unitZerosDestiny) : string
+	private static function transformDivisionToString($amount, $unitZerosOrigin, $unitZerosDestiny) : string
 	{
+        $divisionArray = explode('.', (string)$amount);
 		$left = (string)$divisionArray[0];
 		$right = (string)$divisionArray[1];
  
 		if ($right != "0")
 		{
-			$bnt_wei = BigNumber::of($unitZerosOrigin);
-			$bnt_unit = BigNumber::of($unitZerosDestiny);
+			$bnt_wei = BigInteger::of($unitZerosOrigin);
+			$bnt_unit = BigInteger::of($unitZerosDestiny);
  
 			$right_lead_zeros = strlen($bnt_unit) - strlen($bnt_wei) - strlen($right);  
 			
@@ -716,76 +792,23 @@ class Utils
         return $json;
     }
 
-    /**
-     * toBn
-     * Change number or number string to bignumber.
-     * 
-     * @param BigNumber|string|int $number
-     * 
-     * @return array|BigNumber
-     */
-    public static function toBn($number)
+    private static function getDivisionScale(string $amount, string $unit)
     {
-        if ($number instanceof BigNumber){
-            $bn = $number;
-        } 
-		elseif (is_int($number)) {
-            $bn = BigNumber::of($number);
-        } 
-		elseif (is_numeric($number)) {
-            $number = (string) $number;
-
-            if (self::isNegative($number)) {
-                $count = 1;
-                $number = str_replace('-', '', $number, $count);
-                $negative1 = BigNumber::of(-1);
-            }
-            if (strpos($number, '.') > 0) {
-                $comps = explode('.', $number);
-
-                if (count($comps) > 2) {
-                    throw new InvalidArgumentException('toBn number must be a valid number.');
-                }
-                $whole = $comps[0];
-                $fraction = $comps[1];
-
-                return [
-                    BigNumber::of($whole),
-                    BigNumber::of($fraction),
-                    strlen($comps[1]),
-                    isset($negative1) ? $negative1 : false
-                ];
-            } else {
-                $bn = BigNumber::of($number);
-            }
-            if (isset($negative1)) {
-                $bn = $bn->multipliedBy($negative1);
-            }
-        } 
-		elseif (is_string($number)) {
-            $number = mb_strtolower($number);
-
-            if (self::isNegative($number)) {
-                $count = 1;
-                $number = str_replace('-', '', $number, $count);
-                $negative1 = BigNumber::of(-1);
-            }
-            if (self::isZeroPrefixed($number) || preg_match('/^[0-9a-f]+$/i', $number) === 1) {
-                $number = self::stripZero($number);
-                $bn = BigNumber::fromBase($number, 16);
-            } elseif (empty($number)) {
-                $bn = BigNumber::of(0);
-            } else {
-                throw new InvalidArgumentException('toBn number must be valid hex string.');
-            }
-            if (isset($negative1)) {
-                $bn = $bn->multipliedBy($negative1);
-            }
-        } 
-		else {
-            throw new InvalidArgumentException('toBn number must be BigNumber, string or int.');
+        if (!isset(self::UNITS[$unit])) {
+            self::throwExceptionForUnit($unit);
         }
-        return $bn;
+        
+        $zeroes = substr_count(self::UNITS[$unit], 0);
+        $decimals = strlen($amount) - strpos($amount, '.') - 1;
+
+        return $zeroes + $decimals;
+    }
+
+    private static function throwExceptionForUnit(string $unit)
+    {
+        $message = sprintf('A unit "%s" doesn\'t exist, please use the one of the following units: %s', $unit, implode(',', array_keys(self::UNITS)));
+
+        throw new \UnexpectedValueException($message);
     }
 
 	public static function GetRandomHex(int $length)
