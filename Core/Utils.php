@@ -18,7 +18,6 @@
 
 namespace SWeb3;
 
-use Decimal\Decimal;
 use stdClass;
 use InvalidArgumentException;  
 use kornrunner\Keccak;
@@ -105,19 +104,6 @@ class Utils
             throw new InvalidArgumentException('The value to hexToInt function must be a valid hex string.');
         }
         return hexdec($value);
-    }
-
-    /**
-     * bnToDecimal
-     * Converts BigNumber to Decimal.
-     * 
-     * @param BigNumber $value 
-     * 
-     * @return Decimal
-     */
-    public static function bnToDecimal(BigNumber $value)
-    {
-        return new Decimal((string)$value, self::PRICE_DECIMAL_PRECISION);
     }
 
     /**
@@ -498,28 +484,6 @@ class Utils
         } 
 		
 		return self::toWei_Internal($number, self::UNITS[$unit]);
-    }
-
-    /**
-     * toWeiDecimal
-     * Change number from unit to wei.
-     * For example:
-     * $wei = Utils::toWeiDecimal('1', 'kwei'); 
-     * $wei->toString(); // 1000
-     * 
-     * @param BigNumber|string $number
-     * @param string $unit
-     * @param int $decimalPrecision
-     * 
-     * @return Decimal
-     */
-    public static function toWeiDecimal($number, string $unit, int $decimalPrecision = 9)
-    { 
-        if (!isset(self::UNITS[$unit])) {
-            throw new InvalidArgumentException('toWei doesn\'t support ' . $unit . ' unit.');
-        } 
-		
-		return new Decimal(self::toWei_Internal($number, self::UNITS[$unit]), $decimalPrecision);
     }
 
 	/**

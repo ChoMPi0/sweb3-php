@@ -15,7 +15,6 @@
 
     "require": { 
         "php": "^7.4 || ^8.0",
-        "ext-decimal": "^1.3",
         "kornrunner/ethereum-offline-raw-tx": "^0.6.0",
         "kornrunner/keccak": "~1", 
         "brick/math": "^0.11.0",
