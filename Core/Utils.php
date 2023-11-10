@@ -24,6 +24,7 @@ use kornrunner\Keccak;
 use Brick\Math\BigNumber;
 use Brick\Math\BigDecimal;
 use Brick\Math\BigInteger;
+use Brick\Math\RoundingMode;
 
 class Utils
 {
@@ -448,13 +449,9 @@ class Utils
         if (is_array($bn)) {
             // fraction number
             list($whole, $fraction, $fractionLength, $negative1) = $bn;
-
-            if ($fractionLength > strlen($unit_value)) {
-                throw new InvalidArgumentException('toWei fraction part is out of limit.');
-            }
             $whole = $whole->multipliedBy($bnt);
             $base = BigInteger::ten()->power($fractionLength);
-            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base);
+            $fraction = $fraction->multipliedBy($bnt)->dividedBy($base, RoundingMode::HALF_EVEN);
 
             if ($negative1 !== false) {
                 return $whole->plus($fraction)->multipliedBy($negative1);
